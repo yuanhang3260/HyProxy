@@ -24,6 +24,11 @@ public class HttpResponse {
     public HttpResponse(OutputStream output) {
         this.output = output;
     }
+
+    public HttpResponse(HttpRequest request, OutputStream output) {
+        this.output = output;
+        this.request = request;
+    }
     
     public void setRequest(HttpRequest request) {
         this.request = request;

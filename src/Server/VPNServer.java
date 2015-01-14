@@ -1,8 +1,4 @@
 package Server;
-
-import javax.servlet.*;
-import javax.servlet.http.*;
-import java.io.*;
   
 import java.net.Socket;
 import java.net.ServerSocket;
@@ -16,7 +12,7 @@ import java.util.concurrent.Executors;
 
 import Server.HttpRequest;
 import Server.HttpResponse;
-  
+
 public class VPNServer {
   
     /** WEB_ROOT is the directory where our HTML and other files reside. 
@@ -44,27 +40,14 @@ public class VPNServer {
             e.printStackTrace();
             System.exit(1);
         }
-  
-        // Loop waiting for a request  
+        
+        // waiting for requests
+        ExecutorService cachedThreadPool = Executors.newCachedThreadPool();  
         while (true) {
             Socket socket = null;
-            InputStream input = null;
-            OutputStream output = null;
             try {
                 socket = serverSocket.accept();
-                input = socket.getInputStream();
-                output = socket.getOutputStream();
-      
-                // create Request object and parse  
-                HttpRequest request = new HttpRequest(input);
-                
-                // create Response object  
-                HttpResponse response = new HttpResponse(output);
-                response.setRequest(request);
-                response.sendStaticResource();
-          
-                // Close the socket  
-                socket.close();
+                cachedThreadPool.execute(new RequestProcessor(socket));
             }
             catch (Exception e) {
                 e.printStackTrace();
