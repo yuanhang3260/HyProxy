@@ -22,32 +22,56 @@ public class VPNServer {
      *  from where the java command was invoked. 
      */
     public static final String WEB_ROOT =  
-                        System.getProperty("user.dir") + File.separator  + "webroot";  
+                        System.getProperty("user.dir") + File.separator  + "webroot";
+    private static final int port = 8088;
 
     public static void main(String[] args) {
-        System.out.println("server web root is " + WEB_ROOT);
+        // try {
+        //     String hostname = "www.google.com";
+        //     InetAddress ipaddress = InetAddress.getByName(hostname);
+        //     System.out.println("IP address: " + ipaddress.getHostAddress());
+        // }
+        // catch (Exception e) {
+        //     e.printStackTrace();
+        //     System.exit(1);
+        // }
+
+        System.out.println("server web root is " + WEB_ROOT);            
         VPNServer server = new VPNServer();
         server.startup();
     }
     
     public void startup() {
         ServerSocket serverSocket = null;
-        int port = 8088;
         try {
-            serverSocket =  new ServerSocket(port, 1, InetAddress.getByName("127.0.0.1"));
+            serverSocket =  new ServerSocket(port);
         }
         catch (IOException e) {
             e.printStackTrace();
             System.exit(1);
         }
-        
-        // waiting for requests
-        ExecutorService cachedThreadPool = Executors.newCachedThreadPool();  
+
+        // // waiting for requests
+        // ExecutorService cachedThreadPool = Executors.newCachedThreadPool();  
+        // while (true) {
+        //     Socket socket = null;
+        //     try {
+        //         socket = serverSocket.accept();
+        //         cachedThreadPool.execute(new RequestProcessor(socket));
+        //     }
+        //     catch (Exception e) {
+        //         e.printStackTrace();
+        //         continue;
+        //     }
+        // }
+
         while (true) {
             Socket socket = null;
             try {
                 socket = serverSocket.accept();
-                cachedThreadPool.execute(new RequestProcessor(socket));
+                //System.out.println("\r\n\r\nAccept a new Connection\r\n\r\n");
+                RequestProcessor rp =  new RequestProcessor(socket);
+                rp.go();
             }
             catch (Exception e) {
                 e.printStackTrace();

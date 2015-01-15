@@ -34,6 +34,15 @@ public class HttpResponse {
         this.request = request;
     }
     
+    public void sendContents(byte[] contents, int length) {
+        try {
+            output.write(contents, 0, length);
+        }
+        catch (IOException e) {  
+            System.out.println(e.toString() );
+        }
+    }
+
     public void sendStaticResource() throws IOException {
         byte[] bytes = new byte[BUFFER_SIZE];
         FileInputStream fis = null;
@@ -44,6 +53,7 @@ public class HttpResponse {
             }
             File file = new File(VPNServer.WEB_ROOT, uri);
             if (file.exists()) {
+                //System.out.println("file = " + file.getAbsolutePath());
                 fis = new FileInputStream(file);
                 int ch = 0;
                 while ((ch = fis.read(bytes, 0, BUFFER_SIZE)) != -1) {
@@ -51,7 +61,8 @@ public class HttpResponse {
                 }
             }
             else {
-                // file not found  
+                // file not found
+                //System.out.println("file not found ");
                 String errorMessage = "HTTP/1.1 404 File Not Found/r/n" +  
                                       "Content-Type: text/html/r/n" +  
                                       "Content-Length: 23/r/n" +  
@@ -61,7 +72,7 @@ public class HttpResponse {
             }
         }
         catch (Exception e) {
-            // thrown if cannot instantiate a File object  
+            // thrown if cannot instantiate a File object
             System.out.println(e.toString() );
         }
         finally {
@@ -69,5 +80,9 @@ public class HttpResponse {
                 fis.close();
             }
         }
+    }
+
+    public OutputStream getOutputStream() {
+        return output;
     }
 }
