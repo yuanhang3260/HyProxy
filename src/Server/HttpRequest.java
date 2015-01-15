@@ -125,7 +125,9 @@ public class HttpRequest {
     private void parseUriLine(String requestLine) {
         String[] results = requestLine.split(" ");
         method = results[0].trim();
-        uri = results[1].trim();
+        if (results.length > 1) {
+            uri = results[1].trim();
+        }
         if (results.length > 2) {
             httpVersion = results[2].substring(5).trim();
         }
