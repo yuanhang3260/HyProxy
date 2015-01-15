@@ -33,7 +33,7 @@ public class HttpRequest {
 
         try {
             requestLength = input.read(buffer);
-            RequestProcessor.encryptConvert(buffer, requestLength);
+            //RequestProcessor.encryptConvert(buffer, requestLength);
             // BufferedReader br = new BufferedReader(new InputStreamReader(input));
             // String str = null;
             // while((str = br.readLine()) != null) {
