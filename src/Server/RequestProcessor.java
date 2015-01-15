@@ -96,7 +96,7 @@ public class RequestProcessor implements Runnable {
                     break;
                 }
                 //System.out.printf("server read %d bytes\n", readNum);
-                //System.out.printf("%s", new String(bytes));
+                System.out.printf("%s", new String(bytes));
                 RequestProcessor.encryptConvert(bytes, readNum);
                 response.sendContents(bytes, readNum);
             }
