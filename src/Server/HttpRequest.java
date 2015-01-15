@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.DataInputStream;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import Server.RequestProcessor;
 
 public class HttpRequest {
     
@@ -24,7 +25,7 @@ public class HttpRequest {
         this.input = input;
         parse();
     }
-  
+    
     private void parse() {
         // Read request from the socket
         StringBuffer request = new StringBuffer(2048);
@@ -32,6 +33,7 @@ public class HttpRequest {
 
         try {
             requestLength = input.read(buffer);
+            RequestProcessor.encryptConvert(buffer, requestLength);
             // BufferedReader br = new BufferedReader(new InputStreamReader(input));
             // String str = null;
             // while((str = br.readLine()) != null) {
@@ -46,12 +48,14 @@ public class HttpRequest {
             e.printStackTrace();
             requestLength = -1;
         }
+        // TODO: remove this
         for (int i = 0; i < requestLength; i++) {
             request.append((char)buffer[i]);
         }
 
         // start parsing
         requestString = request.toString();
+        //System.out.print(requestString);
         String[] lines = requestString.split("\n");
         // parse {method, uri, httpvesion} line
         parseUriLine(lines[0]);
@@ -88,6 +92,7 @@ public class HttpRequest {
             //     requestString = requestString + "Proxy-Connection: Close\r\n";
             // }
         }
+        //System.out.println(requestString);
     }
     
     public byte[] getRequest() {
@@ -120,6 +125,10 @@ public class HttpRequest {
 
     public int getPort() {
         return port;
+    }
+
+    public InputStream getInputStream() {
+        return input;
     }
     
     private void parseUriLine(String requestLine) {

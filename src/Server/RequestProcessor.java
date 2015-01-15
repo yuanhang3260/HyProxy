@@ -1,6 +1,7 @@
 package Server;
 
 import java.net.Socket;
+import java.lang.Thread;
 import java.net.ServerSocket;
 import java.net.InetAddress;
 import java.io.InputStream;
@@ -24,13 +25,14 @@ public class RequestProcessor implements Runnable {
     public void run() {
         try {
             // create Request object and parse
+            // TODO: hostname = null ?
             HttpRequest request = new HttpRequest(socket.getInputStream());
 
             // connnect remote host to get resource
             System.out.println("hostname = " + request.getHost());
             InetAddress inetAddress = InetAddress.getByName(request.getHost().trim());
             System.out.println("IP address: " + inetAddress.getHostAddress());
-            Socket socketToHost = new Socket(inetAddress, request.getPort()); 
+            Socket socketToHost = new Socket(inetAddress, request.getPort());
             InputStream ins = socketToHost.getInputStream();
             OutputStream outs = socketToHost.getOutputStream();
             outs.write(request.getRequestString().getBytes(), 0, request.getRequestString().length());
@@ -49,6 +51,7 @@ public class RequestProcessor implements Runnable {
                 }
                 //System.out.printf("read %d bytes\n", readNum);
                 //System.out.printf("%s", new String(bytes));
+                RequestProcessor.encryptConvert(bytes, readNum);
                 response.sendContents(bytes, readNum);
             }
             response.getOutputStream().flush();
@@ -68,13 +71,14 @@ public class RequestProcessor implements Runnable {
     public void go() {
         try {
         	// create Request object and parse
+            // TODO: hostname = null ?
             HttpRequest request = new HttpRequest(socket.getInputStream());
 
             // connnect remote host to get resource
             System.out.println("hostname = " + request.getHost());
             InetAddress inetAddress = InetAddress.getByName(request.getHost().trim());
             System.out.println("IP address: " + inetAddress.getHostAddress());
-            Socket socketToHost = new Socket(inetAddress, request.getPort()); 
+            Socket socketToHost = new Socket(inetAddress, request.getPort());
             InputStream ins = socketToHost.getInputStream();
             OutputStream outs = socketToHost.getOutputStream();
             outs.write(request.getRequestString().getBytes(), 0, request.getRequestString().length());
@@ -86,26 +90,38 @@ public class RequestProcessor implements Runnable {
             byte[] bytes = new byte[1024];
             int readNum = 0;
             while (true) {
-                //System.out.printf("reading\n");
+                //System.out.printf("server reading\n");
                 readNum = ins.read(bytes, 0, bytes.length);
                 if (readNum < 0) {
                     break;
                 }
-                //System.out.printf("read %d bytes\n", readNum);
+                //System.out.printf("server read %d bytes\n", readNum);
                 //System.out.printf("%s", new String(bytes));
+                RequestProcessor.encryptConvert(bytes, readNum);
                 response.sendContents(bytes, readNum);
             }
             response.getOutputStream().flush();
 
+            // Close the socket to remote host
             System.out.printf("closing connection ......\n");
             outs.close();
             ins.close();
+            socketToHost.close();
 
-            // Close the socket  
+            // Close socket to client
+            request.getInputStream().close();
+            response.getOutputStream().close();
             socket.close();
         }
         catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    public static byte[] encryptConvert(byte[] buffer, int len) {
+        for (int i = 0; i < len; i++) {
+            buffer[i] = (byte)(255 - (int)((int)buffer[i]&0xFF));
+        }
+        return buffer;
     }
 }

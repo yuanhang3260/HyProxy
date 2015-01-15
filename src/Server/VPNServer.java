@@ -23,7 +23,7 @@ public class VPNServer {
      */
     public static final String WEB_ROOT =  
                         System.getProperty("user.dir") + File.separator  + "webroot";
-    private static final int port = 8088;
+    private static final int port = 12345;
 
     public static void main(String[] args) {
         // try {
