@@ -84,9 +84,9 @@ public class HttpRequest {
         requestString = "";
         for (String line: lines) {
             //System.out.println(lines[i]);
-            // if (line.startsWith("Cookie: ")) {
-            //     continue;
-            // }
+            if (line.startsWith("Cookie: ")) {
+                continue;
+            }
             requestString = requestString + line + "\r\n";
             // if (line.startsWith("Connection: ")) {
             //     requestString = requestString + "Proxy-Connection: Close\r\n";
