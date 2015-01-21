@@ -36,7 +36,6 @@ public class VPNHttpResponse {
     
     public void sendContents(byte[] contents, int length) {
         try {
-            RequestProcessor.encryptConvert(contents, length);
             output.write(contents, 0, length);
         }
         catch (IOException e) {  

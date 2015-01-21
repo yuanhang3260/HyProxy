@@ -72,8 +72,8 @@ public class VPNLocal {
                 inVPN = socketVPN.getInputStream();
                 outVPN = socketVPN.getOutputStream();
 
-                //System.out.println("\r\n\r\nAccept a new Connection\r\n\r\n");
                 Socket socketClient = serverSocket.accept();
+                System.out.println("\r\n\r\nAccept a new Connection\r\n\r\n");
                 InputStream inCli = socketClient.getInputStream();
                 OutputStream outCli = socketClient.getOutputStream();
 

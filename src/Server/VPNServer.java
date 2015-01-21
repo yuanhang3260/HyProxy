@@ -67,7 +67,7 @@ public class VPNServer {
             Socket socket = null;
             try {
                 socket = serverSocket.accept();
-                //System.out.println("\r\n\r\nAccept a new Connection\r\n\r\n");
+                System.out.println("\r\n\r\nAccept a new Connection\r\n\r\n");
                 RequestProcessor rp =  new RequestProcessor(socket);
                 rp.go();
             }

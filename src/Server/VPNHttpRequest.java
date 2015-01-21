@@ -85,7 +85,7 @@ public class VPNHttpRequest {
         for (String line: lines) {
             requestString = requestString + line + "\r\n";
         }
-        //System.out.println(requestString);
+        System.out.println(requestString);
     }
     
     public byte[] getRequest() {
