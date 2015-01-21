@@ -10,8 +10,6 @@ import java.io.File;
 import java.util.concurrent.ExecutorService;  
 import java.util.concurrent.Executors;
 
-import Server.HttpRequest;
-import Server.HttpResponse;
 
 public class VPNLocal {
   
@@ -68,7 +66,7 @@ public class VPNLocal {
         while (true) {
             Socket socket = null;
             try {
-                InetAddress inetAddress = InetAddress.getByName("128.2.220.18");
+                InetAddress inetAddress = InetAddress.getByName("128.2.220.16");
                 //InetAddress inetAddress = InetAddress.getByName("127.0.0.1");
                 Socket socketVPN = new Socket(inetAddress, 12345);
                 inVPN = socketVPN.getInputStream();
