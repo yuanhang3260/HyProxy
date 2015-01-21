@@ -57,7 +57,7 @@ public class VPNHttpRequest {
         // parse headers
         for (int i = 1; i < lines.length; i++) {
             lines[i] = lines[i].trim();
-            int sepIndex = lines[i].trim().indexOf(":");
+            int sepIndex = lines[i].indexOf(":");
             if (sepIndex < 0) {
                 break;
             }

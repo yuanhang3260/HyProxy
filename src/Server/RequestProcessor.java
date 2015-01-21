@@ -63,6 +63,9 @@ public class RequestProcessor implements Runnable {
             Iterator iter = headers.entrySet().iterator();
             while (iter.hasNext()) {
                 Map.Entry<String, String> pairs = (Map.Entry<String, String>)iter.next();
+                if (pairs.getKey().equals("Accept-Encoding")) {
+                    continue;
+                }
                 request.addHeader(pairs.getKey(), pairs.getValue());
                 //System.out.println("adding header - " + pairs.getKey() + " = " + pairs.getValue());
             }
