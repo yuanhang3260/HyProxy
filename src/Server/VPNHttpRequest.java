@@ -1,5 +1,6 @@
 package Server;
-  
+
+import java.util.HashMap;  
 import java.io.InputStream;
 import java.io.IOException;
 import java.io.DataInputStream;
@@ -7,7 +8,8 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import Server.RequestProcessor;
 
-public class HttpRequest {
+
+public class VPNHttpRequest {
     
     InputStream input;
 
@@ -17,11 +19,12 @@ public class HttpRequest {
     String uri;
     String host;
     String httpVersion;
-    String accpet;
     int port = 80;
     int requestLength;
+
+    HashMap<String, String> headers = new HashMap<String, String>();
     
-    public HttpRequest(InputStream input) {
+    public VPNHttpRequest(InputStream input) {
         this.input = input;
         parse();
     }
@@ -34,15 +37,6 @@ public class HttpRequest {
         try {
             requestLength = input.read(buffer);
             //RequestProcessor.encryptConvert(buffer, requestLength);
-            // BufferedReader br = new BufferedReader(new InputStreamReader(input));
-            // String str = null;
-            // while((str = br.readLine()) != null) {
-            //     requestString = requestString + str + "\r\n";
-            //     if (str.equals("\r\n")) {
-            //         break;
-            //     }
-            // }
-            // requestString = requestString + "\r\n";
         }
         catch (IOException e) {
             e.printStackTrace();
@@ -57,40 +51,39 @@ public class HttpRequest {
         requestString = request.toString();
         //System.out.print(requestString);
         String[] lines = requestString.split("\n");
-        // parse {method, uri, httpvesion} line
+        // parse request line
+        lines[0] = lines[0].trim();
         parseUriLine(lines[0]);
-        // parse other lines
-        for (int i = 0; i < lines.length; i++) {
+        // parse headers
+        for (int i = 1; i < lines.length; i++) {
             lines[i] = lines[i].trim();
-            String line = lines[i];
-            if (line.startsWith("Host: ")) {
-                line = line.substring(6);
-                String[] host_port = line.split(":");
+            int sepIndex = lines[i].trim().indexOf(":");
+            if (sepIndex < 0) {
+                break;
+            }
+            String key = lines[i].substring(0, sepIndex).trim();
+            String value = lines[i].substring(sepIndex + 1).trim();
+
+            if (key.equals("Host")) {
+                String[] host_port = value.split(":");
                 if (host_port.length > 1) {
                     host = host_port[0].trim();
                     port = Integer.parseInt(host_port[1].trim());
                 }
                 else {
-                    host = line;
+                    host = value;
                 }
             }
-            else if (line.startsWith("Accept: ")) {
-                accpet = line.substring(8);
-            }
-            else if (line.startsWith("Connection: ")) {
+            else if (key.equals("Connection")) {
                 lines[i] = "Connection: close";
+                value = "Close";
             }
+            //System.out.println("putting: " + key + " -> " + value);
+            headers.put(key, value);
         }
         requestString = "";
         for (String line: lines) {
-            //System.out.println(lines[i]);
-            if (line.startsWith("Cookie: ")) {
-                continue;
-            }
             requestString = requestString + line + "\r\n";
-            // if (line.startsWith("Connection: ")) {
-            //     requestString = requestString + "Proxy-Connection: Close\r\n";
-            // }
         }
         //System.out.println(requestString);
     }
@@ -117,11 +110,7 @@ public class HttpRequest {
 
     public String getHttpVersion() {
         return httpVersion;
-    }
-
-    public String getAccept() {
-        return accpet;
-    }
+    } 
 
     public int getPort() {
         return port;
@@ -129,6 +118,10 @@ public class HttpRequest {
 
     public InputStream getInputStream() {
         return input;
+    }
+
+    public HashMap<String, String> getHeaders() {
+        return headers;
     }
     
     private void parseUriLine(String requestLine) {

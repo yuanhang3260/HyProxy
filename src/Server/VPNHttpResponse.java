@@ -4,7 +4,7 @@ import java.io.OutputStream;
 import java.io.IOException;
 import java.io.FileInputStream;
 import java.io.File;
-import Server.HttpRequest;
+import Server.VPNHttpRequest;
 import Server.VPNServer;
   
 /* 
@@ -15,22 +15,22 @@ import Server.VPNServer;
     Status-Line = HTTP-Version SP Status-Code SP Reason-Phrase CRLF 
 */  
   
-public class HttpResponse {
+public class VPNHttpResponse {
       
     private static final int BUFFER_SIZE = 1024;
-    HttpRequest request;
+    VPNHttpRequest request;
     OutputStream output;
   
-    public HttpResponse(OutputStream output) {
+    public VPNHttpResponse(OutputStream output) {
         this.output = output;
     }
 
-    public HttpResponse(HttpRequest request, OutputStream output) {
+    public VPNHttpResponse(VPNHttpRequest request, OutputStream output) {
         this.output = output;
         this.request = request;
     }
     
-    public void setRequest(HttpRequest request) {
+    public void setRequest(VPNHttpRequest request) {
         this.request = request;
     }
     
