@@ -42,7 +42,7 @@ public class VPNHttpResponse {
             System.out.println(e.toString() );
         }
     }
-
+    
     public void sendStaticResource() throws IOException {
         byte[] bytes = new byte[BUFFER_SIZE];
         FileInputStream fis = null;

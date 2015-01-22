@@ -25,7 +25,6 @@
 
     <target name="clean">
         <delete dir="${classes.dir}"/>
-        <delete dir="${jar.dir}"/>
     </target>
 
     <target name="compile">
