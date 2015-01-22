@@ -56,6 +56,7 @@ public class RequestProcessor implements Runnable {
             HttpParams params = client.getParams();
             params.setParameter(ClientPNames.DEFAULT_HOST, 
                                 new HttpHost(InetAddress.getByName(cliRequest.getHost()), cliRequest.getPort()));
+            params.setParameter(ClientPNames.ALLOW_CIRCULAR_REDIRECTS, true); 
             //params.setParameter(CoreConnectionPNames.SO_TIMEOUT, 5000);
             
             HttpGet request = new HttpGet(cliRequest.getUri());
