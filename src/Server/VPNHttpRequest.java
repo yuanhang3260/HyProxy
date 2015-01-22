@@ -36,7 +36,7 @@ public class VPNHttpRequest {
 
         try {
             requestLength = input.read(buffer);
-            RequestProcessor.encryptConvert(buffer, requestLength);
+            //RequestProcessor.encryptConvert(buffer, requestLength);
         }
         catch (IOException e) {
             e.printStackTrace();
