@@ -66,8 +66,8 @@ public class VPNLocal {
         while (true) {
             Socket socket = null;
             try {
-                InetAddress inetAddress = InetAddress.getByName("128.2.220.16");
-                //InetAddress inetAddress = InetAddress.getByName("127.0.0.1");
+                //InetAddress inetAddress = InetAddress.getByName("128.2.220.16");
+                InetAddress inetAddress = InetAddress.getByName("127.0.0.1");
                 Socket socketVPN = new Socket(inetAddress, 12345);
                 inVPN = socketVPN.getInputStream();
                 outVPN = socketVPN.getOutputStream();

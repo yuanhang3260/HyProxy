@@ -1,5 +1,6 @@
 package Server;
 
+import java.lang.Thread;
 import java.util.HashMap;  
 import java.io.InputStream;
 import java.io.IOException;
@@ -21,6 +22,7 @@ public class VPNHttpRequest {
     String httpVersion;
     int port = 80;
     int requestLength;
+    boolean isHttps;
 
     HashMap<String, String> headers = new HashMap<String, String>();
     
@@ -30,64 +32,85 @@ public class VPNHttpRequest {
     }
     
     private void parse() {
-        // Read request from the socket
-        StringBuffer request = new StringBuffer(2048);
-        buffer = new byte[2048];
+        // parse headers
+        parseRequest();
 
+        // create request string
+        requestString = "";
+        //System.out.println(requestString);
+    }
+
+
+    /**
+     *  parse Request
+     */
+    private void parseRequest() {
+        int lineNum = 0;
+        BufferedReader bufferedReader = 
+             new BufferedReader(new InputStreamReader(input));
+        
         try {
-            requestLength = input.read(buffer);
-            RequestProcessor.encryptConvert(buffer, requestLength);
+            while (true) {
+                lineNum++;
+                String line = bufferedReader.readLine();
+                line = new String(RequestProcessor.encryptConvert(line.getBytes(), line.length()));
+
+                if (lineNum == 1) {
+                    parseUriLine(line);
+                }
+
+                int sepIndex = line.indexOf(":");
+                if (sepIndex < 0) { // empty line
+                    break;
+                }
+
+                String key = line.substring(0, sepIndex).trim();
+                String value = line.substring(sepIndex + 1).trim();
+
+                if (key.equals("Host")) {
+                    String[] host_port = value.split(":");
+                    if (host_port.length > 1) {
+                        host = host_port[0].trim();
+                        port = Integer.parseInt(host_port[1].trim());
+                    }
+                    else {
+                        host = value;
+                    }
+                }
+                else if (key.equals("Connection")) {
+                    value = "Close";
+                }
+                //System.out.println("putting: " + key + " -> " + value);
+                headers.put(key, value);
+
+                //System.out.printf("%s", new String(buffer));
+            }
+            System.out.println("hehe");
         }
         catch (IOException e) {
             e.printStackTrace();
             requestLength = -1;
         }
-        // TODO: remove this
-        for (int i = 0; i < requestLength; i++) {
-            request.append((char)buffer[i]);
-        }
-
-        // start parsing
-        requestString = request.toString();
-        //System.out.print(requestString);
-        String[] lines = requestString.split("\n");
-        // parse request line
-        lines[0] = lines[0].trim();
-        parseUriLine(lines[0]);
-        // parse headers
-        for (int i = 1; i < lines.length; i++) {
-            lines[i] = lines[i].trim();
-            int sepIndex = lines[i].indexOf(":");
-            if (sepIndex < 0) {
-                break;
-            }
-            String key = lines[i].substring(0, sepIndex).trim();
-            String value = lines[i].substring(sepIndex + 1).trim();
-
-            if (key.equals("Host")) {
-                String[] host_port = value.split(":");
-                if (host_port.length > 1) {
-                    host = host_port[0].trim();
-                    port = Integer.parseInt(host_port[1].trim());
-                }
-                else {
-                    host = value;
-                }
-            }
-            else if (key.equals("Connection")) {
-                lines[i] = "Connection: close";
-                value = "Close";
-            }
-            //System.out.println("putting: " + key + " -> " + value);
-            headers.put(key, value);
-        }
-        requestString = "";
-        for (String line: lines) {
-            requestString = requestString + line + "\r\n";
-        }
-        System.out.println(requestString);
     }
-    
+
+    /**
+     * parse request line
+     * @param requestLine reqeust line
+     */
+    private void parseUriLine(String requestLine) {
+        String[] results = requestLine.split(" ");
+        method = results[0].trim();
+        if (results.length > 1) {
+            uri = results[1].trim();
+        }
+        if (results.length > 2) {
+            httpVersion = results[2].substring(5).trim();
+        }
+        if (uri.startsWith("https")) {
+            isHttps = true;
+        }
+    }
+
     public byte[] getRequest() {
         return buffer;
     }
@@ -98,6 +121,10 @@ public class VPNHttpRequest {
 
     public int getRequestLength() {
         return requestLength;
+    }
+
+    public String getMethod() {
+        return method;
     }
 
     public String getUri() {
@@ -123,17 +150,9 @@ public class VPNHttpRequest {
     public HashMap<String, String> getHeaders() {
         return headers;
     }
-    
-    private void parseUriLine(String requestLine) {
-        String[] results = requestLine.split(" ");
-        method = results[0].trim();
-        if (results.length > 1) {
-            uri = results[1].trim();
-        }
-        if (results.length > 2) {
-            httpVersion = results[2].substring(5).trim();
-        }
-        //System.out.println("hehe: " + method + " " + uri + " " + " " + httpVersion + " " + accpet);
+
+    public boolean isHttpsRequest() {
+        return isHttps;
     }
 
 }

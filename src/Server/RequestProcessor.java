@@ -73,26 +73,34 @@ public class RequestProcessor implements Runnable {
             // }
 
             // response = client.execute(request);
-
-            //System.out.println("Response Code: " + response.getStatusLine().getStatusCode());
-            
-            URL myurl = new URL(cliRequest.getUri());
-            HttpURLConnection con = (HttpURLConnection)myurl.openConnection();
-            InputStream ins = con.getInputStream(); // send http request
-
-            VPNHttpResponse cliResponse = new VPNHttpResponse(cliRequest, socket.getOutputStream());
             //InputStream ins = response.getEntity().getContent();
+            //System.out.println("Response Code: " + response.getStatusLine().getStatusCode());
+
+
+            URL url = new URL(cliRequest.getUri());
+            HttpURLConnection conn = null;
+            if (cliRequest.isHttpsRequest()) {
+                conn = (HttpsURLConnection)url.openConnection();
+            }
+            else {
+                conn = (HttpURLConnection)url.openConnection();
+            }
+
+            // send the request to remote host and wait for response
+            InputStream ins = sendRequest(conn, cliRequest);
+            
+            VPNHttpResponse cliResponse = new VPNHttpResponse(cliRequest, socket.getOutputStream());
             byte[] bytes = new byte[4096];
             int readNum = 0;
             while (true) {
                 //System.out.printf("server reading\n");
                 readNum = ins.read(bytes, 0, bytes.length);
-                if (readNum < 0) {
+                if (readNum <= 0) {
                     break;
                 }
                 //System.out.printf("server read %d bytes\n", readNum);
                 //System.out.printf("%s", new String(bytes));
-                RequestProcessor.encryptConvert(bytes, readNum);
+                //RequestProcessor.encryptConvert(bytes, readNum);
                 cliResponse.sendContents(bytes, readNum);
             }
 
@@ -136,6 +144,39 @@ public class RequestProcessor implements Runnable {
         // finally {
         //     response.close();
         // }
+    }
+
+    private InputStream sendRequest(HttpURLConnection conn, VPNHttpRequest cliRequest) {
+        // add headers
+        HashMap<String, String> headers = cliRequest.getHeaders();
+        Iterator iter = headers.entrySet().iterator();
+        while (iter.hasNext()) {
+            Map.Entry<String, String> pairs = (Map.Entry<String, String>)iter.next();
+            if (pairs.getKey().equals("Accept-Encoding")) {
+                continue;
+            }
+            conn.setRequestProperty(pairs.getKey(), pairs.getValue());
+            //System.out.println("adding header - " + pairs.getKey() + " = " + pairs.getValue());
+        }
+
+        InputStream ins = null;
+        try {
+            conn.connect();
+
+            // if a POST request
+            if (cliRequest.getMethod().equals("POST")) {
+                conn.setDoOutput(true);
+                OutputStream outs = conn.getOutputStream();
+            }
+
+        
+            // send http request to socket
+            ins = conn.getInputStream();
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+        return ins;
     }
 
     public static byte[] encryptConvert(byte[] buffer, int len) {
