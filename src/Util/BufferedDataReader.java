@@ -1,19 +1,26 @@
 package Util;
 
 import java.lang.Exception;
+import java.lang.NullPointerException;
 import java.lang.Math;
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.nio.charset.Charset;
+import java.io.File;
 import java.io.InputStream;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.FileInputStream;
 import java.io.IOException;
 import Util.SocketEncoder;
 
 public class BufferedDataReader {
 
     public static final int BUFSIZE = 1024;
+    public static final int MAX_BUFSIZE = 4194302;
     
     int bufSize;
     byte[] buffer;
-    SocketEncoder encoder;
+    SocketEncoder encoder = null;
     InputStream ins;
     int head = 0;
     int tail = 0;
@@ -25,8 +32,14 @@ public class BufferedDataReader {
      * @param encoder data encoder
      */
     public BufferedDataReader(InputStream ins, int bufSize, SocketEncoder encoder) {
+        if (bufSize < 0 || bufSize > MAX_BUFSIZE) {
+            bufSize = 1024;
+        }
+        else {
+            this.bufSize = bufSize;
+        }
+
         this.ins = ins;
-        this.bufSize = bufSize;
         this.encoder = encoder;
         buffer = new byte[bufSize];
     }
@@ -39,7 +52,7 @@ public class BufferedDataReader {
         this(ins, bufSize, (SocketEncoder)null);
     }
 
-    public BufferedDataReader(InputStream ins,SocketEncoder encoder) {
+    public BufferedDataReader(InputStream ins, SocketEncoder encoder) {
         this(ins, BUFSIZE, (SocketEncoder)encoder);
     }
 
@@ -48,14 +61,18 @@ public class BufferedDataReader {
      * read 1 byte
      * @return byte
      */
-    public byte read() throws IOException {
-        byte b = buffer[tail++];
-        dataLen--;
+    public int read() throws IOException {
         int re = 0;
         if (dataLen == 0 && (re = refill()) <= 0) {
             return -1;
         }
-        return b;
+
+        byte b = buffer[tail++];
+        dataLen--;
+        if (dataLen == 0) {
+            refill();
+        }
+        return (int)(((int)b)&0xFF);
     }
 
     /**
@@ -66,10 +83,28 @@ public class BufferedDataReader {
      * @return actual length read
      */
     public int read(byte[] buf, int off, int len) throws Exception, IOException {
-        if (off + len >= buf.length) {
-            throw new Exception("Exceeds ArrayBound Exception" + 
-                             off + " + " + len + " > " + buf.length);
+        if (buf == null) {
+            throw new NullPointerException();
         }
+        if (off + len >= buf.length) {
+            throw new Exception("IndexOutOfBoundsException" + 
+                                 off + " + " + len + " > " + buf.length);
+        }
+        if (len < 0 || off < 0) {
+            throw new Exception("IndexOutOfBoundsException" + ": len = " + len + " < 0");
+        }
+        if (off < 0) {
+            throw new Exception("IndexOutOfBoundsException" + ": off = " + off + " < 0");
+        }
+
+        if (len == 0) {
+            return 0;
+        }
+        int re = 0;
+        if (dataLen == 0 && (re = refill()) <= 0) {
+            return -1;
+        }
+
         int readLenLeft = len;
         while (readLenLeft > 0) {
             int copyLen = Math.min(dataLen, readLenLeft);
@@ -78,7 +113,7 @@ public class BufferedDataReader {
             tail += copyLen;
             dataLen -= copyLen;
             readLenLeft -= copyLen;
-            int re = 0;
+            re = 0;
             if (dataLen == 0 && (re = refill()) < 0) {
                 break;
             }
@@ -91,9 +126,13 @@ public class BufferedDataReader {
      * @return String line
      */
     public String readLine() throws IOException {
+        int re = 0;
+        if (dataLen == 0 && (re = refill()) < 0) {
+            return null;
+        }
+
         StringBuffer lineBuf = new StringBuffer();
-        int index = tail;
-        
+        boolean eof = false;
         while (true) {
             if ((char)buffer[tail] == '\n') {
                 tail++;
@@ -106,19 +145,19 @@ public class BufferedDataReader {
             else {
                 lineBuf.append((char)buffer[tail++]);
                 dataLen--;
-                // if stream end has been reached without a complete line, return null
-                int re = 0;
                 if (dataLen == 0 && (re = refill()) < 0) {
-                    return null;
+                    eof = true;
+                    break;
                 }
             }
         }
 
         // if end with \n and the previous char is an 'r' that has been saved
-        if (lineBuf.length() > 0 && lineBuf.charAt(lineBuf.length()-1) == '\r') {
+        if (!eof && lineBuf.length() > 0 && lineBuf.charAt(lineBuf.length()-1) == '\r') {
             lineBuf.setLength(lineBuf.length() - 1);
         }
-        return lineBuf.toString();
+        return new String(lineBuf);
+        //return new String(lineBuf.getBytes(), Charset.forName("UTF-8"));
     }
 
     /**
@@ -137,13 +176,179 @@ public class BufferedDataReader {
         head = 0;
         tail = 0;
         int readLen = ins.read(buffer, 0, bufSize);
+        head += readLen;
         if (readLen <= 0) {
             dataLen = 0;
         }
         else {
             dataLen = readLen;
+            if (encoder != null) {
+                encoder.decode(buffer, 0, dataLen);
+            }
         }
         return readLen;
+    }
+
+    /**
+     * compare a byte buffer with a char buffer
+     * @return number of dataLen or -1 if stream end has been reached
+     */
+    private static boolean dataCompare(byte[] buf1, int off1, char[] buf2, int off2, int len) 
+                           throws Exception 
+    {
+        if (off1 + len >= buf1.length) {
+            throw new Exception("Exceeds ArrayBound Exception Byte Buffer " + 
+                                off1 + " + " + len + " > " + buf1.length);
+        }
+        if (off2 + len >= buf2.length) {
+            throw new Exception("Exceeds ArrayBound Exception Char Buffer " + 
+                                off2 + " + " + len + " > " + buf2.length);
+        }
+        
+        for (int i = 0; i < len; i++) {
+            if (buf1[off1+i] != (byte)buf2[off2+i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+
+    public static void testReadLine(String path) throws Exception {
+        File folder = new File(path);
+        ArrayList<String> filesList = new ArrayList<String>();
+        for (File fileEntry : folder.listFiles()) {
+            if (!fileEntry.isDirectory()) {
+                //System.out.println(fileEntry.getName());
+                filesList.add(fileEntry.getPath());
+            }
+        }
+
+        System.out.println("\nStart Testing readLine() ...");
+        for (String fileName: filesList) {
+            //String fileName = "src/Util/SocketEncoder.java";
+            for (int size = 1; size < 10000; size++) {
+                InputStream ins1 = new FileInputStream(fileName);
+                InputStream ins2 = new FileInputStream(fileName);
+                BufferedReader br1 = new BufferedReader(new InputStreamReader(ins1));
+                BufferedDataReader br2 = new BufferedDataReader(ins2, size);
+                String line1 = null, line2 = null;
+                while ((line1 = br1.readLine()) != null && (line2 = br2.readLine()) != null) {
+                    if (!line1.equals(line2)) {
+                        System.err.println("Error: File " + fileName + ", BUF Size = " + size);
+                        return;
+                    }
+                }
+                ins1.close();
+                ins2.close();
+            }
+        }
+        System.err.println("Passed ^_^");
+    }
+
+    public static void testReadSingle(String path) throws Exception {
+        File folder = new File(path);
+        ArrayList<String> filesList = new ArrayList<String>();
+        for (File fileEntry : folder.listFiles()) {
+            if (!fileEntry.isDirectory()) {
+                //System.out.println(fileEntry.getName());
+                filesList.add(fileEntry.getPath());
+            }
+        }
+
+        System.out.println("\nStart Testing read() ...");
+        for (String fileName: filesList) {
+            for (int size = 1; size < 10000; size++) {
+                //String fileName = "src/Util/SocketEncoder.java";
+                InputStream ins1 = new FileInputStream(fileName);
+                InputStream ins2 = new FileInputStream(fileName);
+                BufferedReader br1 = new BufferedReader(new InputStreamReader(ins1));
+                BufferedDataReader br2 = new BufferedDataReader(ins2, size);
+                byte c1 = -1, c2 = -1;
+                while (true) {
+                    c1 = (byte)br1.read();
+                    c2 = (byte)br2.read();
+                    if (c1 <0 || c2 < 0) {
+                        break;
+                    }
+                    if (c1 != c2) {
+                        System.err.println("***Error***: File " + fileName + ", BUF Size = " + size);
+                        return;
+                    }
+                }
+                if (c1 != -1 || c2 != -1) {
+                    System.err.println("***Error***: End of File " + fileName + ", BUF Size = " + size);
+                    System.out.println("c1 = " + c1 + ", c2 = " + c2);
+                    return;
+                }
+                ins1.close();
+                ins2.close();
+            }
+        }
+        System.err.println("Passed ^_^");
+    }
+
+
+    public static void testReadBatch(String path) throws Exception {
+        File folder = new File(path);
+        ArrayList<String> filesList = new ArrayList<String>();
+        for (File fileEntry : folder.listFiles()) {
+            if (!fileEntry.isDirectory()) {
+                //System.out.println(fileEntry.getName());
+                filesList.add(fileEntry.getPath());
+            }
+        }
+
+        System.out.println("\nStart Testing read(byte[], int, int) ...");
+        for (String fileName: filesList) {
+            //String fileName = "src/Util/SocketEncoder.java";
+            char[] buf1 = new char[2048];
+            byte[] buf2 = new byte[2048];
+            int readLen1 = 0, readLen2 = 0;     
+            for (int size = 1; size < 10000; size++) {
+                InputStream ins1 = new FileInputStream(fileName);
+                InputStream ins2 = new FileInputStream(fileName);
+                BufferedReader br1 = new BufferedReader(new InputStreamReader(ins1));
+                BufferedDataReader br2 = new BufferedDataReader(ins2, size);
+                while (true) {
+                    int readSize = (int)(1.0 * 2048 * Math.random());
+                    readLen1 = br1.read(buf1, 0, readSize);
+                    readLen2 = br2.read(buf2, 0, readSize);
+                    if (readLen1 != readLen2) {
+                        System.err.println("***Error***: File " + fileName + ", BUF Size = " + size);
+                        return;
+                    }
+                    if (!BufferedDataReader.dataCompare(buf2, 0, buf1, 0, readLen1)) {
+                        System.err.println("***Error***: File " + fileName + ", BUF Size = " + size);
+                        return;
+                    }
+                    if (readLen1 < 0 || readLen2 < 0) {
+                        break;
+                    }
+                }
+                if (readLen1 != -1 || readLen2 != -1) {
+                    System.err.println("***Error***: End of File " + fileName + ", BUF Size = " + size);
+                    System.out.println("readLen1 = " + readLen1 + ", readLen2 = " + readLen2);
+                    return;
+                }
+                ins1.close();
+                ins2.close();
+            }
+        }
+        System.err.println("Passed ^_^");
+    }
+
+    /**
+     * main funciton for test
+     */
+    public static void main(String args[]) throws Exception {
+
+        String path = "src/Server/";
+        testReadLine(path);
+        testReadSingle(path);
+        testReadBatch(path);
+
+        return;
     }
 
 }
