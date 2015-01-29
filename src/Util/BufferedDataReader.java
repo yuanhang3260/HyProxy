@@ -25,7 +25,7 @@ public class BufferedDataReader {
     int head = 0;
     int tail = 0;
     int dataLen = 0; // effective data length
-
+    
     /**
      * constructors
      * @param bufSize buffer size
@@ -69,9 +69,6 @@ public class BufferedDataReader {
 
         byte b = buffer[tail++];
         dataLen--;
-        if (dataLen == 0) {
-            refill();
-        }
         return (int)(((int)b)&0xFF);
     }
 
@@ -83,38 +80,37 @@ public class BufferedDataReader {
      * @return actual length read
      */
     public int read(byte[] buf, int off, int len) throws Exception, IOException {
-        if (buf == null) {
-            throw new NullPointerException();
-        }
-        if (off + len >= buf.length) {
-            throw new Exception("IndexOutOfBoundsException" + 
-                                 off + " + " + len + " > " + buf.length);
-        }
-        if (len < 0 || off < 0) {
-            throw new Exception("IndexOutOfBoundsException" + ": len = " + len + " < 0");
-        }
-        if (off < 0) {
-            throw new Exception("IndexOutOfBoundsException" + ": off = " + off + " < 0");
-        }
-
+        
+        checkArgs(buf, off, len);
         if (len == 0) {
             return 0;
         }
-        int re = 0;
-        if (dataLen == 0 && (re = refill()) <= 0) {
-            return -1;
-        }
-
+        
         int readLenLeft = len;
         while (readLenLeft > 0) {
+            if (dataLen <= 0) {
+                if (readLenLeft >= bufSize) {
+                    readLenLeft -= ins.read(buf, off, readLenLeft);
+                    break;
+                }
+                else {
+                    int re = 0;
+                    if ((re = refill()) < 0) {
+                        return readLenLeft == len? -1 : len - readLenLeft;
+                    }
+                }
+            }
+
             int copyLen = Math.min(dataLen, readLenLeft);
             System.arraycopy(buffer, tail, buf, off, copyLen);
             off += copyLen;
             tail += copyLen;
             dataLen -= copyLen;
             readLenLeft -= copyLen;
-            re = 0;
-            if (dataLen == 0 && (re = refill()) < 0) {
+            if (readLenLeft == 0) {
+                break;
+            }
+            if (ins != null && ins.available() <= 0) {
                 break;
             }
         }
@@ -137,9 +133,6 @@ public class BufferedDataReader {
             if ((char)buffer[tail] == '\n') {
                 tail++;
                 dataLen -= 1;
-                if (dataLen == 0) {
-                    refill();
-                }
                 break;
             }
             else {
@@ -175,6 +168,7 @@ public class BufferedDataReader {
     private int refill() throws IOException {
         head = 0;
         tail = 0;
+        //System.out.println("available: " + ins.available());
         int readLen = ins.read(buffer, 0, bufSize);
         head += readLen;
         if (readLen <= 0) {
@@ -190,12 +184,32 @@ public class BufferedDataReader {
     }
 
     /**
+     * check arguments of read(byte[], int, int)
+     * @param buf user buf where data is copied to
+     * @param off offset of user buf
+     * @param len read length
+     */
+    private void checkArgs(byte[] buf, int off, int len) throws Exception, IOException {
+        if (buf == null) {
+            throw new NullPointerException();
+        }
+        if (off + len > buf.length) {
+            throw new Exception("IndexOutOfBoundsException: " + 
+                                 off + " + " + len + " > " + buf.length);
+        }
+        if (len < 0 || off < 0) {
+            throw new Exception("IndexOutOfBoundsException: " + ": len = " + len + " < 0");
+        }
+        if (off < 0) {
+            throw new Exception("IndexOutOfBoundsException: " + ": off = " + off + " < 0");
+        }
+    }
+
+    /**
      * compare a byte buffer with a char buffer
      * @return number of dataLen or -1 if stream end has been reached
      */
-    private static boolean dataCompare(byte[] buf1, int off1, char[] buf2, int off2, int len) 
-                           throws Exception 
-    {
+    private static boolean dataCompare(byte[] buf1, int off1, char[] buf2, int off2, int len) throws Exception {
         if (off1 + len >= buf1.length) {
             throw new Exception("Exceeds ArrayBound Exception Byte Buffer " + 
                                 off1 + " + " + len + " > " + buf1.length);
@@ -265,20 +279,26 @@ public class BufferedDataReader {
                 BufferedReader br1 = new BufferedReader(new InputStreamReader(ins1));
                 BufferedDataReader br2 = new BufferedDataReader(ins2, size);
                 byte c1 = -1, c2 = -1;
+                int re1 = -1, re2 = -1;
                 while (true) {
-                    c1 = (byte)br1.read();
-                    c2 = (byte)br2.read();
-                    if (c1 <0 || c2 < 0) {
+                    re1 = br1.read();
+                    re2 = br2.read();
+                    c1 = (byte)re1;
+                    c2 = (byte)re2;
+                    if (re1 <0 || re2 < 0) {
                         break;
                     }
                     if (c1 != c2) {
-                        System.err.println("***Error***: File " + fileName + ", BUF Size = " + size);
+                        System.err.println("Error: File " + fileName + ", BUF Size = " + size);
+                        System.out.println("c1 = " + c1 + ", c2 = " + c2);
+                        System.out.println("re1 = " + re1 + ", re2 = " + re2);
                         return;
                     }
                 }
-                if (c1 != -1 || c2 != -1) {
-                    System.err.println("***Error***: End of File " + fileName + ", BUF Size = " + size);
+                if (re1 != -1 || re1 != -1) {
+                    System.err.println("Error: End of File " + fileName + ", BUF Size = " + size);
                     System.out.println("c1 = " + c1 + ", c2 = " + c2);
+                    System.out.println("re1 = " + re1 + ", re2 = " + re2);
                     return;
                 }
                 ins1.close();
@@ -315,11 +335,12 @@ public class BufferedDataReader {
                     readLen1 = br1.read(buf1, 0, readSize);
                     readLen2 = br2.read(buf2, 0, readSize);
                     if (readLen1 != readLen2) {
-                        System.err.println("***Error***: File " + fileName + ", BUF Size = " + size);
+                        System.err.println("***Len Error***: File " + fileName + ", BUF Size = " + size);
+                        System.out.println("readLen1 = " + readLen1 + ", readLen2 = " + readLen2);
                         return;
                     }
                     if (!BufferedDataReader.dataCompare(buf2, 0, buf1, 0, readLen1)) {
-                        System.err.println("***Error***: File " + fileName + ", BUF Size = " + size);
+                        System.err.println("***Data Error***: File " + fileName + ", BUF Size = " + size);
                         return;
                     }
                     if (readLen1 < 0 || readLen2 < 0) {
@@ -344,8 +365,8 @@ public class BufferedDataReader {
     public static void main(String args[]) throws Exception {
 
         String path = "src/Server/";
-        testReadLine(path);
-        testReadSingle(path);
+        //testReadLine(path);
+        //testReadSingle(path);
         testReadBatch(path);
 
         return;

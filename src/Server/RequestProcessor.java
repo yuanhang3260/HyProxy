@@ -14,6 +14,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.File;
 import java.net.URL;
+import java.net.URLConnection;
 import java.net.HttpURLConnection;
 import javax.net.ssl.HttpsURLConnection;
 import org.apache.http.HttpResponse;
@@ -22,14 +23,16 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.conn.params.ConnRoutePNames;
-import org.apache.http.client.params.ClientPNames;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.params.HttpParams;
-import org.apache.http.params.CoreConnectionPNames;
+// import org.apache.http.conn.params.ConnRoutePNames;
+// import org.apache.http.client.params.ClientPNames;
+// import org.apache.http.impl.client.DefaultHttpClient;
+// import org.apache.http.params.HttpParams;
+// import org.apache.http.params.CoreConnectionPNames;
 
 import Server.VPNHttpRequest;
 import Server.VPNHttpResponse;
+import Util.BufferedDataReader;
+import Util.SocketEncoder;
 
 public class RequestProcessor implements Runnable {
 
@@ -51,33 +54,16 @@ public class RequestProcessor implements Runnable {
         	// create Request object and parse
             // TODO: hostname = null ?
             VPNHttpRequest cliRequest = new VPNHttpRequest(socket.getInputStream());
+            if (cliRequest.getHost() == null) {
+                return;
+            }
             InetAddress inetAddress = InetAddress.getByName(cliRequest.getHost().trim());
             System.out.println("*** hostname = " + cliRequest.getHost() + ", IP: " + inetAddress.getHostAddress());
+            System.out.println("Method = " + cliRequest.getMethod());
+            System.out.println("Url = " + cliRequest.getUrl());
+            System.out.println("Uri = " + cliRequest.getUri());
 
-            // client = new DefaultHttpClient();
-            // HttpParams params = client.getParams();
-            // params.setParameter(ClientPNames.DEFAULT_HOST, 
-            //                     new HttpHost(InetAddress.getByName(cliRequest.getHost()), cliRequest.getPort()));
-            // //params.setParameter(CoreConnectionPNames.SO_TIMEOUT, 5000);
-            
-            // HttpGet request = new HttpGet(cliRequest.getUri());
-            // HashMap<String, String> headers = cliRequest.getHeaders();
-            // Iterator iter = headers.entrySet().iterator();
-            // while (iter.hasNext()) {
-            //     Map.Entry<String, String> pairs = (Map.Entry<String, String>)iter.next();
-            //     if (pairs.getKey().equals("Accept-Encoding")) {
-            //         continue;
-            //     }
-            //     request.addHeader(pairs.getKey(), pairs.getValue());
-            //     //System.out.println("adding header - " + pairs.getKey() + " = " + pairs.getValue());
-            // }
-
-            // response = client.execute(request);
-            //InputStream ins = response.getEntity().getContent();
-            //System.out.println("Response Code: " + response.getStatusLine().getStatusCode());
-
-
-            URL url = new URL(cliRequest.getUri());
+            URL url = new URL(cliRequest.getUrl());
             HttpURLConnection conn = null;
             if (cliRequest.isHttpsRequest()) {
                 conn = (HttpsURLConnection)url.openConnection();
@@ -104,33 +90,8 @@ public class RequestProcessor implements Runnable {
                 cliResponse.sendContents(bytes, readNum);
             }
 
-            // connnect remote host to get resource
-            // Socket socketToHost = new Socket(inetAddress, request.getPort());
-            // InputStream ins = socketToHost.getInputStream();
-            // OutputStream outs = socketToHost.getOutputStream();
-            // outs.write(request.getRequestString().getBytes(), 0, request.getRequestString().length());
-            // System.out.print(request.getRequestString());
-            // outs.flush();
-
-            // // receive response from remote host and forward to client
-            // HttpResponse response = new HttpResponse(request, socket.getOutputStream());
-            // byte[] bytes = new byte[1024];
-            // int readNum = 0;
-            // while (true) {
-            //     //System.out.printf("server reading\n");
-            //     readNum = ins.read(bytes, 0, bytes.length);
-            //     if (readNum < 0) {
-            //         break;
-            //     }
-            //     //System.out.printf("server read %d bytes\n", readNum);
-            //     //System.out.printf("%s", new String(bytes));
-            //     //RequestProcessor.encryptConvert(bytes, readNum);
-            //     response.sendContents(bytes, readNum);
-            // }
-            // response.getOutputStream().flush();
-
             // Close the socket to remote host
-            System.out.printf("closing connection ......\n");
+            System.out.printf("closing connection ......\n\n");
             ins.close();
 
             // Close socket to client
@@ -141,12 +102,9 @@ public class RequestProcessor implements Runnable {
         catch (Exception e) {
             e.printStackTrace();
         }
-        // finally {
-        //     response.close();
-        // }
     }
 
-    private InputStream sendRequest(HttpURLConnection conn, VPNHttpRequest cliRequest) {
+    private InputStream sendRequest(URLConnection conn, VPNHttpRequest cliRequest) {
         // add headers
         HashMap<String, String> headers = cliRequest.getHeaders();
         Iterator iter = headers.entrySet().iterator();
@@ -161,15 +119,15 @@ public class RequestProcessor implements Runnable {
 
         InputStream ins = null;
         try {
-            conn.connect();
+            //conn.connect();
 
             // if a POST request
             if (cliRequest.getMethod().equals("POST")) {
                 conn.setDoOutput(true);
                 OutputStream outs = conn.getOutputStream();
+                outs.write(cliRequest.getBody());
             }
 
-        
             // send http request to socket
             ins = conn.getInputStream();
         }
