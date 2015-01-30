@@ -61,7 +61,7 @@ public class RequestProcessor implements Runnable {
             System.out.println("*** hostname = " + cliRequest.getHost() + ", IP: " + inetAddress.getHostAddress());
             System.out.println("Method = " + cliRequest.getMethod());
             System.out.println("Url = " + cliRequest.getUrl());
-            System.out.println("Uri = " + cliRequest.getUri());
+            //System.out.println("Uri = " + cliRequest.getUri());
 
             URL url = new URL(cliRequest.getUrl());
             HttpURLConnection conn = null;

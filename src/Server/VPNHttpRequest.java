@@ -122,7 +122,7 @@ public class VPNHttpRequest {
                     int contentLen = Integer.parseInt(headers.get("Content-Length"));
                     body = new byte[contentLen];
                     bufferedReader.read(body, 0, contentLen);
-                    System.out.println("Get Body: " + new String(body));
+                    //System.out.println("Get Body: " + new String(body));
                 }
                 else {
                     // ?
