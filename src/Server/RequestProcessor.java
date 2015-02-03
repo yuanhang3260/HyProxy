@@ -17,17 +17,6 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.net.HttpURLConnection;
 import javax.net.ssl.HttpsURLConnection;
-import org.apache.http.HttpResponse;
-import org.apache.http.HttpHost;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpUriRequest;
-// import org.apache.http.conn.params.ConnRoutePNames;
-// import org.apache.http.client.params.ClientPNames;
-// import org.apache.http.impl.client.DefaultHttpClient;
-// import org.apache.http.params.HttpParams;
-// import org.apache.http.params.CoreConnectionPNames;
 
 import Server.VPNHttpRequest;
 import Server.VPNHttpResponse;
@@ -48,8 +37,6 @@ public class RequestProcessor implements Runnable {
     }
 
     public void go() {
-        HttpClient client = null;
-        HttpResponse response = null;
         try {
         	// create Request object and parse
             // TODO: hostname = null ?

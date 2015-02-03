@@ -5,18 +5,9 @@
     <property name="build.dir"   value="build"/>
     <property name="classes.dir" value="classes"/>
     <property name="jar.dir"     value="jar"/>
-    <property name="tomcatlib.dir"     value="/usr/share/maven-repo/org/apache/tomcat/tomcat-servlet-api/3.0"/>
-    <property name="httpclient.dir"    value="/usr/share/maven-repo/org/apache/httpcomponents-client/httpclient/"/>
-    <property name="httpcore.dir"      value="/usr/share/maven-repo/org/apache/httpcomponents-client/httpcore/"/>
-    <property name="commons.dir"       value="/usr/share/maven-repo/org/apache/commons/"/>
-    <property name="slf4j.dir"         value="/usr/share/maven-repo/org/apache/slf4j/"/>
     
     
     <path id="classpath">
-        <fileset dir="${httpclient.dir}" includes="**/*.jar"/>
-        <fileset dir="${httpcore.dir}" includes="**/*.jar"/>
-        <fileset dir="${commons.dir}" includes="**/*.jar"/>
-        <fileset dir="${slf4j.dir}" includes="**/*.jar"/>
     </path>
 
     <property name="main-class"  value="Server.VPNServer"/>
