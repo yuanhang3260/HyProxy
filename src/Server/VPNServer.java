@@ -21,7 +21,7 @@ public class VPNServer {
      */
     public static final String WEB_ROOT =  
                         System.getProperty("user.dir") + File.separator  + "webroot";
-    private static final int port = 12345;
+    private static int port = 12345;
     
     public static void main(String[] args) {
         // try {
@@ -33,6 +33,9 @@ public class VPNServer {
         //     e.printStackTrace();
         //     System.exit(1);
         // }
+		if (args.length > 0) {
+			port = Integer.parseInt(args[0]);		
+		}
 
         System.out.println("server web root is " + WEB_ROOT);            
         VPNServer server = new VPNServer();
