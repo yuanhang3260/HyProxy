@@ -24,15 +24,6 @@ public class VPNServer {
     private static int port = 12345;
     
     public static void main(String[] args) {
-        // try {
-        //     String hostname = "www.google.com";
-        //     InetAddress ipaddress = InetAddress.getByName(hostname);
-        //     System.out.println("IP address: " + ipaddress.getHostAddress());
-        // }
-        // catch (Exception e) {
-        //     e.printStackTrace();
-        //     System.exit(1);
-        // }
 		if (args.length > 0) {
 			port = Integer.parseInt(args[0]);		
 		}
